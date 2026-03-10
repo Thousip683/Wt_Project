@@ -237,4 +237,55 @@ function getAcademicStats($user_id) {
         'workload' => calculateWorkload($user_id)
     ];
 }
+
+/**
+ * Get career/course learning statistics for dashboard
+ * Returns zeroes gracefully if Stage 4 tables have not been imported yet.
+ */
+function getCareerStats($user_id) {
+    $default = [
+        'in_progress_courses' => 0,
+        'completed_courses'   => 0,
+        'weekly_hours'        => 0,
+        'projects'            => 0,
+        'active_goals'        => 0
+    ];
+
+    try {
+        $conn = getDBConnection();
+
+        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM courses WHERE user_id = ? AND status = 'In Progress'");
+        $stmt->bind_param("i", $user_id); $stmt->execute();
+        $in_progress = $stmt->get_result()->fetch_assoc()['total']; $stmt->close();
+
+        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM courses WHERE user_id = ? AND status = 'Completed'");
+        $stmt->bind_param("i", $user_id); $stmt->execute();
+        $completed = $stmt->get_result()->fetch_assoc()['total']; $stmt->close();
+
+        $stmt = $conn->prepare("SELECT COALESCE(SUM(duration_minutes),0) as total_mins FROM learning_sessions WHERE user_id = ? AND session_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
+        $stmt->bind_param("i", $user_id); $stmt->execute();
+        $week_mins = $stmt->get_result()->fetch_assoc()['total_mins']; $stmt->close();
+
+        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM projects WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id); $stmt->execute();
+        $projects = $stmt->get_result()->fetch_assoc()['total']; $stmt->close();
+
+        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM career_goals WHERE user_id = ? AND status = 'Active'");
+        $stmt->bind_param("i", $user_id); $stmt->execute();
+        $active_goals = $stmt->get_result()->fetch_assoc()['total']; $stmt->close();
+
+        closeDBConnection($conn);
+
+        return [
+            'in_progress_courses' => $in_progress,
+            'completed_courses'   => $completed,
+            'weekly_hours'        => round($week_mins / 60, 1),
+            'projects'            => $projects,
+            'active_goals'        => $active_goals
+        ];
+    } catch (Exception $e) {
+        // Stage 4 tables not yet imported — return safe defaults
+        return $default;
+    }
+}
 ?>

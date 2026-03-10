@@ -8,6 +8,9 @@ $currentUser = getCurrentUser();
 // Get academic statistics
 $stats = getAcademicStats($_SESSION['user_id']);
 
+// Get career learning statistics
+$career_stats = getCareerStats($_SESSION['user_id']);
+
 // Get recent assignments
 $conn = getDBConnection();
 $stmt = $conn->prepare("
@@ -47,6 +50,18 @@ $stmt = $conn->prepare("
 $stmt->bind_param("is", $_SESSION['user_id'], $today);
 $stmt->execute();
 $todays_classes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Get in-progress courses for dashboard widget
+$stmt = $conn->prepare("
+    SELECT id, course_name, platform, color, progress_percentage, target_date 
+    FROM courses 
+    WHERE user_id = ? AND status = 'In Progress' 
+    ORDER BY updated_at DESC LIMIT 3
+");
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$inprogress_courses = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 closeDBConnection($conn);
@@ -124,9 +139,19 @@ include 'includes/header.php';
                 <p class="stat-label">Classes scheduled</p>
             </div>
         </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #6366f1;">
+                <i class="fas fa-laptop-code"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Courses Active</h3>
+                <p class="stat-value"><?php echo $career_stats['in_progress_courses']; ?></p>
+                <p class="stat-label"><?php echo number_format($career_stats['weekly_hours'],1); ?>h this week</p>
+            </div>
+        </div>
     </div>
 
-    <!-- Quick Links -->
     <div class="quick-links">
         <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
         <div class="links-grid">
@@ -145,6 +170,22 @@ include 'includes/header.php';
             <a href="modules/academics/exams.php" class="quick-link">
                 <i class="fas fa-file-alt"></i>
                 <span>Exam Schedule</span>
+            </a>
+            <a href="modules/career_learning/my_courses.php" class="quick-link">
+                <i class="fas fa-play-circle"></i>
+                <span>My Courses</span>
+            </a>
+            <a href="modules/career_learning/skills.php" class="quick-link">
+                <i class="fas fa-star"></i>
+                <span>Skills Tracker</span>
+            </a>
+            <a href="modules/career_learning/projects.php" class="quick-link">
+                <i class="fas fa-code-branch"></i>
+                <span>My Projects</span>
+            </a>
+            <a href="modules/career_learning/goals.php" class="quick-link">
+                <i class="fas fa-bullseye"></i>
+                <span>Career Goals</span>
             </a>
         </div>
     </div>
@@ -236,6 +277,38 @@ include 'includes/header.php';
                 <?php endforeach; ?>
             </div>
             <a href="modules/academics/exams.php" class="view-all-link">View all exams <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- In-Progress Courses Widget -->
+    <?php if (!empty($inprogress_courses)): ?>
+    <div class="info-card" style="margin-top: 20px;">
+        <div class="info-header">
+            <i class="fas fa-laptop-code"></i>
+            <h2>In-Progress Courses</h2>
+        </div>
+        <div class="info-content">
+            <div class="course-widget-list">
+                <?php foreach ($inprogress_courses as $c): 
+                    $days_left = $c['target_date'] ? floor((strtotime($c['target_date']) - time()) / 86400) : null;
+                ?>
+                <div class="course-widget-item">
+                    <div class="cwi-header">
+                        <span class="cwi-name" style="border-left:3px solid <?php echo $c['color']; ?>;padding-left:8px"><?php echo htmlspecialchars($c['course_name']); ?></span>
+                        <span class="cwi-platform"><?php echo $c['platform']; ?></span>
+                        <span class="cwi-pct"><?php echo number_format($c['progress_percentage'],0); ?>%</span>
+                    </div>
+                    <div class="progress-bar-bg" style="margin:6px 0 4px">
+                        <div class="progress-bar-fill" style="width:<?php echo $c['progress_percentage']; ?>%;background:<?php echo $c['color']; ?>"></div>
+                    </div>
+                    <?php if ($days_left !== null): ?>
+                    <span class="cwi-deadline"><?php echo $days_left >= 0 ? $days_left . ' days left' : 'Target date passed'; ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <a href="modules/career_learning/my_courses.php" class="view-all-link">View all courses <i class="fas fa-arrow-right"></i></a>
         </div>
     </div>
     <?php endif; ?>
@@ -383,6 +456,69 @@ include 'includes/header.php';
 
 .view-all-link:hover {
     text-decoration: underline;
+}
+
+.course-widget-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.course-widget-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.course-widget-item:last-child {
+    border-bottom: none;
+}
+
+.cwi-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.cwi-name {
+    font-weight: 600;
+    font-size: 14px;
+    flex: 1;
+}
+
+.cwi-platform {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.cwi-pct {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary-color);
+    min-width: 36px;
+    text-align: right;
+}
+
+.cwi-deadline {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.progress-bar-bg {
+    background: #f1f5f9;
+    border-radius: 6px;
+    height: 6px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.4s ease;
 }
 </style>
 

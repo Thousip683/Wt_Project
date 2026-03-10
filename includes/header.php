@@ -47,6 +47,18 @@ if (!defined('BASE_PATH')) {
                         <a href="<?php echo SITE_URL; ?>/modules/exam_prep/practice_tests.php"><i class="fas fa-file-alt"></i> Practice Tests</a>
                     </div>
                 </div>
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-laptop-code"></i> Career Learning <i class="fas fa-chevron-down"></i>
+                    </a>
+                    <div class="dropdown-content">
+                        <a href="<?php echo SITE_URL; ?>/modules/career_learning/my_courses.php"><i class="fas fa-play-circle"></i> My Courses</a>
+                        <a href="<?php echo SITE_URL; ?>/modules/career_learning/learning_sessions.php"><i class="fas fa-clock"></i> Sessions</a>
+                        <a href="<?php echo SITE_URL; ?>/modules/career_learning/skills.php"><i class="fas fa-star"></i> Skills</a>
+                        <a href="<?php echo SITE_URL; ?>/modules/career_learning/projects.php"><i class="fas fa-code-branch"></i> Projects</a>
+                        <a href="<?php echo SITE_URL; ?>/modules/career_learning/goals.php"><i class="fas fa-bullseye"></i> Goals</a>
+                    </div>
+                </div>
                 <a href="<?php echo SITE_URL; ?>/profile.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'profile.php' ? 'active' : ''; ?>">
                     <i class="fas fa-user"></i> Profile
                 </a>

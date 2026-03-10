@@ -1,0 +1,27 @@
+# Beyond Classroom - Apache Configuration
+
+# Enable Rewrite Engine
+RewriteEngine On
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Prevent directory browsing
+Options -Indexes
+
+# PHP Settings
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_execution_time 300
+    php_value session.cookie_httponly 1
+    php_value session.cookie_secure 0
+</IfModule>
+
+# Error pages (customize these later)
+ErrorDocument 404 /beyond-classroom/404.php
+ErrorDocument 403 /beyond-classroom/403.php
